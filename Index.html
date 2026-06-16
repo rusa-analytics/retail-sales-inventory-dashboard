@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUSA Analytics – Retail Sales & Inventory Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,Segoe UI,sans-serif;background:#0d0d0d;color:#fff}
+.dash{display:flex;min-height:100vh}
+.sidebar{width:190px;background:#111;flex-shrink:0;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:10;overflow-y:auto}
+.logo-area{padding:14px;border-bottom:1px solid #1e1e1e;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.t1{color:#fff;font-size:14px;font-weight:700;letter-spacing:0.5px}
+.t2{color:#c0392b;font-size:8.5px;letter-spacing:2px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;color:#555;font-size:11.5px;border-left:3px solid transparent;transition:all 0.15s;user-select:none}
+.nav-item.active{color:#fff;background:#1a1a1a;border-left:3px solid #c0392b}
+.nav-item:hover:not(.active){color:#bbb;background:#161616}
+.nav-icon{font-size:16px;width:18px;text-align:center}
+.main{margin-left:190px;flex:1;padding:18px;overflow:auto}
+.page{display:none}.page.active{display:block}
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.page-title{color:#fff;font-size:19px;font-weight:600}
+.page-sub{color:#c0392b;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+.date-badge{background:#1a1a1a;border:0.5px solid #2a2a2a;border-radius:6px;padding:6px 12px;color:#777;font-size:10.5px;display:flex;align-items:center;gap:6px}
+.kpi-grid{display:grid;gap:8px;margin-bottom:12px}
+.kpi-6{grid-template-columns:repeat(6,1fr)}
+.kpi-4{grid-template-columns:repeat(4,1fr)}
+.kpi{background:#1a1a1a;border:0.5px solid #2a2a2a;border-radius:8px;padding:11px}
+.kpi-label{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+.kpi-icon{color:#c0392b;font-size:14px;margin-bottom:3px}
+.kpi-val{font-size:17px;font-weight:600;color:#fff}
+.kpi-delta{font-size:9px;color:#27ae60;margin-top:3px}
+.kpi-delta.red{color:#e74c3c}
+.kpi-delta.amber{color:#f39c12}
+.grid2{display:grid;gap:10px;margin-bottom:10px}
+.g-2{grid-template-columns:1fr 1fr}
+.g-3{grid-template-columns:1fr 1fr 1fr}
+.g-13{grid-template-columns:1fr 1fr 1.1fr}
+.card{background:#1a1a1a;border:0.5px solid #2a2a2a;border-radius:8px;padding:13px}
+.card-title{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:10px;font-weight:500}
+.bar-h{margin-bottom:5px}
+.bl{display:flex;justify-content:space-between;font-size:10px;color:#999;margin-bottom:3px}
+.bt{background:#222;border-radius:2px;height:7px;overflow:hidden}
+.bf{height:7px;border-radius:2px;background:#c0392b;transition:width .4s}
+.prod-chip{border-radius:6px;padding:8px 5px;text-align:center}
+.prod-name{font-size:8px;color:rgba(255,255,255,0.8);line-height:1.3;margin-bottom:5px}
+.prod-val{font-size:11px;font-weight:600;color:#fff}
+.tr{display:flex;align-items:center;padding:5px 0;border-bottom:0.5px solid #222;font-size:10.5px;gap:6px}
+.tr:last-child{border-bottom:none}
+.pbw{background:#222;border-radius:2px;height:4px;overflow:hidden}
+.pbar{height:4px;border-radius:2px;background:#c0392b}
+.donut-wrap{position:relative;display:flex;align-items:center;justify-content:center}
+.donut-center{position:absolute;text-align:center;pointer-events:none}
+.donut-center .big{font-size:17px;font-weight:700;color:#fff}
+.donut-center .sm{font-size:8.5px;color:#555;text-transform:uppercase}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:10px;color:#888;margin-bottom:4px}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+table{width:100%;border-collapse:collapse;font-size:10.5px}
+th{color:#555;font-weight:500;text-align:left;padding:5px 6px;border-bottom:1px solid #222;font-size:9px;text-transform:uppercase;letter-spacing:0.4px}
+td{color:#bbb;padding:5px 6px;border-bottom:0.5px solid #1e1e1e}
+tr:last-child td{border-bottom:none}
+.pill{display:inline-block;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:500}
+.pill-red{background:#3d0f0f;color:#e74c3c}
+.pill-green{background:#0d2e1a;color:#27ae60}
+.pill-yellow{background:#2e2305;color:#f39c12}
+.badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:600}
+.badge-red{background:#3d0f0f;color:#e74c3c}
+.badge-green{background:#0d2e1a;color:#27ae60}
+.filter-bar{display:flex;gap:8px;padding-top:12px;border-top:0.5px solid #1e1e1e;margin-top:8px;align-items:center;flex-wrap:wrap}
+select{background:#1e1e1e;border:0.5px solid #2a2a2a;color:#777;font-size:10px;padding:4px 8px;border-radius:4px;cursor:pointer}
+.clr-btn{margin-left:auto;border:0.5px solid #c0392b;color:#c0392b;font-size:10px;padding:4px 12px;border-radius:4px;cursor:pointer;display:flex;align-items:center;gap:5px}
+.bot{margin-top:auto;padding:14px;border-top:1px solid #1e1e1e;display:flex;align-items:center;gap:9px;flex-shrink:0}
+@media(max-width:900px){.sidebar{width:56px}.main{margin-left:56px}.nav-item span{display:none}.logo-text{display:none}.t1,.t2{display:none}}
+</style>
+</head>
+<body>
+
+<!-- Brain SVG Symbol -->
+<svg style="display:none">
+  <symbol id="brain" viewBox="0 0 100 85">
+    <g fill="none" stroke="#c0392b" stroke-linecap="round" stroke-linejoin="round">
+      <path stroke-width="5" d="M50 8 C44 8 36 9 30 13 C20 18 13 27 11 37 C9 47 11 56 16 63 C21 70 28 75 36 77 C41 78 46 78 50 78"/>
+      <path stroke-width="5" d="M50 8 C56 8 64 9 70 13 C80 18 87 27 89 37 C91 47 89 56 84 63 C79 70 72 75 64 77 C59 78 54 78 50 78"/>
+      <line stroke-width="4.5" x1="50" y1="8" x2="50" y2="78"/>
+      <path stroke-width="3.8" d="M28 20 C28 15 34 13 38 16 C41 18 41 23 38 25"/>
+      <path stroke-width="3.8" d="M18 35 C20 29 27 28 31 31 C34 34 33 39 30 41"/>
+      <path stroke-width="3.8" d="M14 50 C16 44 24 43 28 47 C31 50 30 55 27 57"/>
+      <path stroke-width="3.8" d="M20 65 C22 60 29 59 33 62 C36 65 35 70 32 72"/>
+      <path stroke-width="3.8" d="M72 20 C72 15 66 13 62 16 C59 18 59 23 62 25"/>
+      <path stroke-width="3.8" d="M82 35 C80 29 73 28 69 31 C66 34 67 39 70 41"/>
+      <path stroke-width="3.8" d="M86 50 C84 44 76 43 72 47 C69 50 70 55 73 57"/>
+      <path stroke-width="3.8" d="M80 65 C78 60 71 59 67 62 C64 65 65 70 68 72"/>
+      <path stroke-width="3.2" d="M43 22 C41 26 43 30 46 31"/>
+      <path stroke-width="3.2" d="M42 55 C40 59 42 63 45 64"/>
+      <path stroke-width="3.2" d="M57 22 C59 26 57 30 54 31"/>
+      <path stroke-width="3.2" d="M58 55 C60 59 58 63 55 64"/>
+    </g>
+  </symbol>
+</svg>
+
+<div class="dash">
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo-area">
+    <svg width="36" height="30" viewBox="0 0 100 85"><use href="#brain"/></svg>
+    <div class="logo-text"><div class="t1">RUSA</div><div class="t2">Analytics</div></div>
+  </div>
+  <div style="padding-top:6px">
+    <div class="nav-item active" onclick="showPage('exec',this)"><span class="nav-icon">🏠</span><span>Executive Overview</span></div>
+    <div class="nav-item" onclick="showPage('store',this)"><span class="nav-icon">🏪</span><span>Store Performance</span></div>
+    <div class="nav-item" onclick="showPage('inv',this)"><span class="nav-icon">📦</span><span>Inventory Intelligence</span></div>
+    <div class="nav-item" onclick="showPage('prod',this)"><span class="nav-icon">📊</span><span>Product Analytics</span></div>
+    <div class="nav-item" onclick="showPage('cust',this)"><span class="nav-icon">👥</span><span>Customer Insights</span></div>
+  </div>
+  <div class="bot">
+    <svg width="24" height="20" viewBox="0 0 100 85"><use href="#brain"/></svg>
+    <div><div style="color:#fff;font-size:10px;font-weight:700">RUSA Analytics</div><div style="color:#c0392b;font-size:8px;letter-spacing:1px;text-transform:uppercase">Insights that drive impact</div></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- ====== PAGE 1: EXECUTIVE OVERVIEW ====== -->
+<div id="page-exec" class="page active">
+  <div class="top-bar">
+    <div><div class="page-title">Executive Overview</div><div class="page-sub">Retail Sales &amp; Inventory Intelligence Dashboard</div></div>
+    <div class="date-badge">📅 1 Jan 2025 – 31 May 2026 <span style="color:#333;margin-left:6px">· Data as of: 31 May 2026</span></div>
+  </div>
+  <div class="kpi-grid kpi-6">
+    <div class="kpi"><div class="kpi-icon">₹</div><div class="kpi-label">Total Revenue</div><div class="kpi-val">₹4.10M</div><div class="kpi-delta">▲ 23.6% vs LY</div></div>
+    <div class="kpi"><div class="kpi-icon">💰</div><div class="kpi-label">Gross Profit</div><div class="kpi-val">₹790K</div><div class="kpi-delta">▲ 25.1% vs LY</div></div>
+    <div class="kpi"><div class="kpi-icon">%</div><div class="kpi-label">Gross Margin</div><div class="kpi-val">19.3%</div><div class="kpi-delta">▲ 0.9% vs LY</div></div>
+    <div class="kpi"><div class="kpi-icon">🛒</div><div class="kpi-label">Total Orders</div><div class="kpi-val">5,000</div><div class="kpi-delta">▲ 20.2% vs LY</div></div>
+    <div class="kpi"><div class="kpi-icon">📦</div><div class="kpi-label">Units Sold</div><div class="kpi-val">14,393</div><div class="kpi-delta">▲ 18.7% vs LY</div></div>
+    <div class="kpi"><div class="kpi-icon">👥</div><div class="kpi-label">Customers</div><div class="kpi-val">1,000</div><div class="kpi-delta">▲ 15.3% vs LY</div></div>
+  </div>
+  <div class="grid2 g-13">
+    <div class="card"><div class="card-title">Revenue &amp; Profit Trend (Monthly)</div><div style="position:relative;height:155px"><canvas id="trendChart"></canvas></div></div>
+    <div class="card"><div class="card-title">Revenue by Category</div><div id="catBarsExec"></div></div>
+    <div class="card"><div class="card-title">Top 10 Products by Revenue</div><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px" id="topProdsExec"></div></div>
+  </div>
+  <div class="grid2 g-3">
+    <div class="card">
+      <div class="card-title">Revenue by Region (State)</div>
+      <svg viewBox="0 0 220 168" width="100%" height="145">
+        <ellipse cx="80" cy="70" rx="52" ry="64" fill="#c0392b" opacity="0.85"/>
+        <text x="80" y="58" text-anchor="middle" fill="#fff" font-size="9" font-weight="600">Karnataka</text>
+        <text x="80" y="72" text-anchor="middle" fill="#ffcdd2" font-size="8">₹1.89M</text>
+        <ellipse cx="148" cy="84" rx="39" ry="49" fill="#e57373" opacity="0.7"/>
+        <text x="148" y="76" text-anchor="middle" fill="#fff" font-size="8">Telangana</text>
+        <text x="148" y="90" text-anchor="middle" fill="#ffcdd2" font-size="7.5">₹1.13M</text>
+        <ellipse cx="95" cy="145" rx="34" ry="24" fill="#ef9a9a" opacity="0.6"/>
+        <text x="95" y="143" text-anchor="middle" fill="#7f1313" font-size="7.5">Tamil Nadu</text>
+        <text x="95" y="155" text-anchor="middle" fill="#7f1313" font-size="7">₹1.14M</text>
+      </svg>
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:9px;color:#444;margin-top:4px"><span>Low</span><div style="width:70px;height:4px;background:linear-gradient(to right,#7f1313,#c0392b,#ef9a9a);border-radius:2px"></div><span>High</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Sales vs Target (Monthly)</div>
+      <div style="position:relative;height:118px"><canvas id="targetChart"></canvas></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
+        <div style="background:#222;border-radius:6px;padding:7px;text-align:center"><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Actual</div><div style="font-size:14px;font-weight:600">₹4.10M</div></div>
+        <div style="background:#222;border-radius:6px;padding:7px;text-align:center"><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Target</div><div style="font-size:14px;font-weight:600">₹3.82M</div></div>
+        <div style="background:#222;border-radius:6px;padding:7px;text-align:center"><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Achievement</div><div style="font-size:14px;font-weight:600;color:#27ae60">107.3%</div></div>
+      </div>
+    </div>
+    <div class="card"><div class="card-title">Top 10 Products by Profit</div><div id="profitRowsExec"></div></div>
+  </div>
+  <div class="filter-bar">
+    <span style="font-size:10px;color:#444">REGION</span><select><option>All</option><option>South</option></select>
+    <span style="font-size:10px;color:#444">CITY</span><select><option>All</option><option>Bengaluru</option><option>Chennai</option><option>Hyderabad</option><option>Mysuru</option><option>Coimbatore</option></select>
+    <span style="font-size:10px;color:#444">CATEGORY</span><select><option>All</option><option>Snacks</option><option>Dairy</option><option>Grocery</option><option>Beverages</option><option>Personal Care</option><option>Household</option><option>Frozen Foods</option></select>
+    <div class="clr-btn">✕ Clear Filters</div>
+  </div>
+</div>
+
+<!-- ====== PAGE 2: STORE PERFORMANCE ====== -->
+<div id="page-store" class="page">
+  <div class="top-bar">
+    <div><div class="page-title">Store Performance</div><div class="page-sub">Revenue, Profit &amp; Margin by Store</div></div>
+    <div class="date-badge">📅 1 Jan 2025 – 31 May 2026</div>
+  </div>
+  <div class="kpi-grid kpi-4">
+    <div class="kpi"><div class="kpi-icon">🏪</div><div class="kpi-label">Total Stores</div><div class="kpi-val">10</div><div class="kpi-delta">Across 5 cities</div></div>
+    <div class="kpi"><div class="kpi-icon">₹</div><div class="kpi-label">Best Store Revenue</div><div class="kpi-val">₹510.9K</div><div class="kpi-delta">▲ Whitefield</div></div>
+    <div class="kpi"><div class="kpi-icon">%</div><div class="kpi-label">Avg Store Margin</div><div class="kpi-val">19.3%</div><div class="kpi-delta">Stable across stores</div></div>
+    <div class="kpi"><div class="kpi-icon">🏆</div><div class="kpi-label">Top City</div><div class="kpi-val">Bengaluru</div><div class="kpi-delta">₹1.89M revenue</div></div>
+  </div>
+  <div class="grid2 g-2" style="margin-bottom:10px">
+    <div class="card"><div class="card-title">Revenue by Store</div><div id="storeBars"></div></div>
+    <div class="card"><div class="card-title">Profit Margin by Store (%)</div><div id="storeMarginBars"></div></div>
+  </div>
+  <div class="grid2 g-2">
+    <div class="card"><div class="card-title">Revenue &amp; Profit by City</div><div style="position:relative;height:185px"><canvas id="cityChart"></canvas></div></div>
+    <div class="card">
+      <div class="card-title">Store Performance Summary</div>
+      <table>
+        <thead><tr><th>#</th><th>Store</th><th>Revenue</th><th>Profit</th><th>Orders</th><th style="text-align:right">Margin</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Whitefield</td><td>₹510.9K</td><td>₹98.8K</td><td>617</td><td style="text-align:right"><span class="pill pill-green">19.3%</span></td></tr>
+          <tr><td>2</td><td>Indiranagar</td><td>₹463.6K</td><td>₹89.1K</td><td>590</td><td style="text-align:right"><span class="pill pill-green">19.2%</span></td></tr>
+          <tr><td>3</td><td>Jayanagar</td><td>₹460.1K</td><td>₹88.1K</td><td>548</td><td style="text-align:right"><span class="pill pill-green">19.1%</span></td></tr>
+          <tr><td>4</td><td>Electronic City</td><td>₹453.7K</td><td>₹86.2K</td><td>527</td><td style="text-align:right"><span class="pill pill-yellow">19.0%</span></td></tr>
+          <tr><td>5</td><td>T Nagar</td><td>₹445.4K</td><td>₹87.7K</td><td>520</td><td style="text-align:right"><span class="pill pill-green">19.7%</span></td></tr>
+          <tr><td>6</td><td>Anna Nagar</td><td>₹389.4K</td><td>₹76.4K</td><td>486</td><td style="text-align:right"><span class="pill pill-green">19.6%</span></td></tr>
+          <tr><td>7</td><td>Banjara Hills</td><td>₹384.1K</td><td>₹76.3K</td><td>487</td><td style="text-align:right"><span class="pill pill-green">19.9%</span></td></tr>
+          <tr><td>8</td><td>Gachibowli</td><td>₹372.3K</td><td>₹72.2K</td><td>483</td><td style="text-align:right"><span class="pill pill-green">19.4%</span></td></tr>
+          <tr><td>9</td><td>Mysuru Central</td><td>₹313.5K</td><td>₹55.7K</td><td>372</td><td style="text-align:right"><span class="pill pill-red">17.8%</span></td></tr>
+          <tr><td>10</td><td>RS Puram</td><td>₹303.2K</td><td>₹60.4K</td><td>370</td><td style="text-align:right"><span class="pill pill-green">19.9%</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ====== PAGE 3: INVENTORY INTELLIGENCE ====== -->
+<div id="page-inv" class="page">
+  <div class="top-bar">
+    <div><div class="page-title">Inventory Intelligence</div><div class="page-sub">Stock-Out Risk, Overstock &amp; Reorder Alerts</div></div>
+    <div class="date-badge">📅 As of: 31 May 2026</div>
+  </div>
+  <div class="kpi-grid kpi-4">
+    <div class="kpi"><div class="kpi-icon">📦</div><div class="kpi-label">Total SKUs</div><div class="kpi-val">5,000</div><div class="kpi-delta">Across 10 stores</div></div>
+    <div class="kpi"><div class="kpi-icon">⚠️</div><div class="kpi-label">Stock-Out Risk</div><div class="kpi-val" style="color:#e74c3c">530</div><div class="kpi-delta red">▲ 10.6% of SKUs</div></div>
+    <div class="kpi"><div class="kpi-icon">📈</div><div class="kpi-label">Overstock Items</div><div class="kpi-val" style="color:#f39c12">1,672</div><div class="kpi-delta amber">33.4% of SKUs</div></div>
+    <div class="kpi"><div class="kpi-icon">₹</div><div class="kpi-label">Total Stock Value</div><div class="kpi-val">₹91.8M</div><div class="kpi-delta">At cost price</div></div>
+  </div>
+  <div class="grid2 g-2" style="margin-bottom:10px">
+    <div class="card"><div class="card-title">Inventory Stock Value by Category</div><div id="invCatBars"></div></div>
+    <div class="card">
+      <div class="card-title">Inventory Status Overview</div>
+      <div class="donut-wrap" style="height:155px"><canvas id="invDonut" width="155" height="155"></canvas><div class="donut-center"><div class="big">5,000</div><div class="sm">SKUs</div></div></div>
+      <div style="display:flex;gap:14px;justify-content:center;margin-top:10px;flex-wrap:wrap">
+        <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div>Healthy 2,798 (56%)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#e74c3c"></div>Stock-Out 530 (10.6%)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f39c12"></div>Overstock 1,672 (33.4%)</div>
+      </div>
+    </div>
+  </div>
+  <div class="grid2 g-2">
+    <div class="card">
+      <div class="card-title">🚨 Stock-Out Risk — Reorder Alerts</div>
+      <table>
+        <thead><tr><th>Product</th><th>Store</th><th>Stock</th><th>Reorder Lvl</th><th style="text-align:right">Status</th></tr></thead>
+        <tbody>
+          <tr><td>UrbanMart Soft Drink 2pk</td><td>Electronic City</td><td>0</td><td>40</td><td style="text-align:right"><span class="badge badge-red">OUT</span></td></tr>
+          <tr><td>ValueKart Freshener 1kg</td><td>Electronic City</td><td>0</td><td>28</td><td style="text-align:right"><span class="badge badge-red">OUT</span></td></tr>
+          <tr><td>HomePlus Chips 100g</td><td>Electronic City</td><td>0</td><td>30</td><td style="text-align:right"><span class="badge badge-red">OUT</span></td></tr>
+          <tr><td>ValueKart Namkeen 100g</td><td>Indiranagar</td><td>0</td><td>30</td><td style="text-align:right"><span class="badge badge-red">OUT</span></td></tr>
+          <tr><td>PrimeChoice Chips 500g</td><td>Electronic City</td><td>0</td><td>30</td><td style="text-align:right"><span class="badge badge-red">OUT</span></td></tr>
+          <tr><td>NatureWay Biscuits 250g</td><td>Electronic City</td><td>0</td><td>30</td><td style="text-align:right"><span class="badge badge-red">OUT</span></td></tr>
+          <tr><td>FreshNest Dal 2L</td><td>Electronic City</td><td>0</td><td>45</td><td style="text-align:right"><span class="badge badge-red">OUT</span></td></tr>
+          <tr><td>NatureWay Body Lotion 2L</td><td>Mysuru Central</td><td>0</td><td>25</td><td style="text-align:right"><span class="badge badge-red">OUT</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">📦 Top Overstock Items</div>
+      <table>
+        <thead><tr><th>Product</th><th>Store</th><th>Stock</th><th>Reorder Lvl</th><th style="text-align:right">Stock Value</th></tr></thead>
+        <tbody>
+          <tr><td>DailyPure Pasta 500g</td><td>Indiranagar</td><td>274</td><td>45</td><td style="text-align:right">₹56.8K</td></tr>
+          <tr><td>QuickBite Sugar 1L</td><td>Whitefield</td><td>255</td><td>45</td><td style="text-align:right">₹88.6K</td></tr>
+          <tr><td>HomePlus Coffee 2pk</td><td>T Nagar</td><td>247</td><td>40</td><td style="text-align:right">₹47.4K</td></tr>
+          <tr><td>FarmFresh Coffee 100g</td><td>Jayanagar</td><td>242</td><td>40</td><td style="text-align:right">₹104.0K</td></tr>
+          <tr><td>DailyPure Tea 1kg</td><td>Gachibowli</td><td>239</td><td>40</td><td style="text-align:right">₹45.7K</td></tr>
+          <tr><td>PrimeChoice Ghee 500g</td><td>Anna Nagar</td><td>230</td><td>40</td><td style="text-align:right">₹82.3K</td></tr>
+          <tr><td>UrbanMart Juice 1L</td><td>Banjara Hills</td><td>225</td><td>38</td><td style="text-align:right">₹38.6K</td></tr>
+          <tr><td>CareMore Shampoo 300ml</td><td>RS Puram</td><td>218</td><td>35</td><td style="text-align:right">₹55.1K</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ====== PAGE 4: PRODUCT ANALYTICS ====== -->
+<div id="page-prod" class="page">
+  <div class="top-bar">
+    <div><div class="page-title">Product Analytics</div><div class="page-sub">Top Products, Category Performance &amp; Margin Analysis</div></div>
+    <div class="date-badge">📅 1 Jan 2025 – 31 May 2026</div>
+  </div>
+  <div class="kpi-grid kpi-4">
+    <div class="kpi"><div class="kpi-icon">🏷️</div><div class="kpi-label">Total Products</div><div class="kpi-val">500+</div><div class="kpi-delta">Across 7 categories</div></div>
+    <div class="kpi"><div class="kpi-icon">📈</div><div class="kpi-label">Top Category Rev.</div><div class="kpi-val">Snacks</div><div class="kpi-delta">₹773K revenue</div></div>
+    <div class="kpi"><div class="kpi-icon">%</div><div class="kpi-label">Best Margin Cat.</div><div class="kpi-val">Dairy</div><div class="kpi-delta">19.8% margin</div></div>
+    <div class="kpi"><div class="kpi-icon">⭐</div><div class="kpi-label">Top Product</div><div class="kpi-val" style="font-size:13px">DailyPure Cheese</div><div class="kpi-delta">₹30.2K revenue</div></div>
+  </div>
+  <div class="grid2 g-2" style="margin-bottom:10px">
+    <div class="card"><div class="card-title">Revenue by Category</div><div style="position:relative;height:200px"><canvas id="catBar2"></canvas></div></div>
+    <div class="card"><div class="card-title">Profit Margin by Category</div><div id="catMarginBars"></div><div style="position:relative;height:110px;margin-top:10px"><canvas id="catMargLine"></canvas></div></div>
+  </div>
+  <div class="grid2 g-2">
+    <div class="card">
+      <div class="card-title">Top 10 Products by Revenue</div>
+      <table>
+        <thead><tr><th>#</th><th>Product</th><th>Category</th><th>Revenue</th><th style="text-align:right">Margin</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>DailyPure Cheese 2pk</td><td>Dairy</td><td>₹30.2K</td><td style="text-align:right"><span class="pill pill-green">23.6%</span></td></tr>
+          <tr><td>2</td><td>CareMore Yogurt 100g</td><td>Dairy</td><td>₹30.2K</td><td style="text-align:right"><span class="pill pill-green">22.6%</span></td></tr>
+          <tr><td>3</td><td>UrbanMart Frozen Corn</td><td>Frozen Foods</td><td>₹26.4K</td><td style="text-align:right"><span class="pill pill-green">22.6%</span></td></tr>
+          <tr><td>4</td><td>QuickBite Shampoo 200g</td><td>Personal Care</td><td>₹25.5K</td><td style="text-align:right"><span class="pill pill-green">27.8%</span></td></tr>
+          <tr><td>5</td><td>PrimeChoice Pasta 100g</td><td>Grocery</td><td>₹25.2K</td><td style="text-align:right"><span class="pill pill-yellow">21.6%</span></td></tr>
+          <tr><td>6</td><td>QuickBite Yogurt 200g</td><td>Dairy</td><td>₹25.0K</td><td style="text-align:right"><span class="pill pill-yellow">20.2%</span></td></tr>
+          <tr><td>7</td><td>CareMore Popcorn 200g</td><td>Snacks</td><td>₹24.4K</td><td style="text-align:right"><span class="pill pill-red">12.5%</span></td></tr>
+          <tr><td>8</td><td>CareMore Tissue 200g</td><td>Household</td><td>₹24.1K</td><td style="text-align:right"><span class="pill pill-green">27.9%</span></td></tr>
+          <tr><td>9</td><td>QuickBite Wheat Flour</td><td>Grocery</td><td>₹24.1K</td><td style="text-align:right"><span class="pill pill-yellow">21.4%</span></td></tr>
+          <tr><td>10</td><td>FreshNest Ice Cream</td><td>Frozen Foods</td><td>₹23.9K</td><td style="text-align:right"><span class="pill pill-red">9.3%</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">Bottom 5 Products by Revenue</div>
+      <table style="margin-bottom:14px">
+        <thead><tr><th>#</th><th>Product</th><th>Category</th><th>Revenue</th><th style="text-align:right">Margin</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>ValueKart Namkeen 500g</td><td>Snacks</td><td>₹332</td><td style="text-align:right"><span class="pill pill-red">9.2%</span></td></tr>
+          <tr><td>2</td><td>PrimeChoice Popcorn 4pk</td><td>Snacks</td><td>₹443</td><td style="text-align:right"><span class="pill pill-green">28.5%</span></td></tr>
+          <tr><td>3</td><td>UrbanMart Paneer 2L</td><td>Dairy</td><td>₹469</td><td style="text-align:right"><span class="pill pill-green">24.8%</span></td></tr>
+          <tr><td>4</td><td>PrimeChoice Cleaner 250g</td><td>Household</td><td>₹499</td><td style="text-align:right"><span class="pill pill-red">8.6%</span></td></tr>
+          <tr><td>5</td><td>QuickBite Cereal 100g</td><td>Grocery</td><td>₹659</td><td style="text-align:right"><span class="pill pill-yellow">20.3%</span></td></tr>
+        </tbody>
+      </table>
+      <div class="card-title" style="margin-bottom:8px">Category Revenue vs Margin</div>
+      <div style="position:relative;height:148px"><canvas id="catCombo"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== PAGE 5: CUSTOMER INSIGHTS ====== -->
+<div id="page-cust" class="page">
+  <div class="top-bar">
+    <div><div class="page-title">Customer Insights</div><div class="page-sub">Loyalty, Demographics &amp; Purchase Behaviour</div></div>
+    <div class="date-badge">📅 1 Jan 2025 – 31 May 2026</div>
+  </div>
+  <div class="kpi-grid kpi-4">
+    <div class="kpi"><div class="kpi-icon">👥</div><div class="kpi-label">Total Customers</div><div class="kpi-val">1,000</div><div class="kpi-delta">In sample dataset</div></div>
+    <div class="kpi"><div class="kpi-icon">❤️</div><div class="kpi-label">Loyalty Members</div><div class="kpi-val">586</div><div class="kpi-delta">▲ 58.6% of base</div></div>
+    <div class="kpi"><div class="kpi-icon">🔁</div><div class="kpi-label">Repeat Customers</div><div class="kpi-val">1,329</div><div class="kpi-delta">▲ 42% repeat rate</div></div>
+    <div class="kpi"><div class="kpi-icon">₹</div><div class="kpi-label">Loyalty Rev. Share</div><div class="kpi-val">58.6%</div><div class="kpi-delta">vs 41.4% non-loyalty</div></div>
+  </div>
+  <div class="grid2 g-3" style="margin-bottom:10px">
+    <div class="card">
+      <div class="card-title">Revenue by Age Group</div>
+      <div id="ageGroupBars"></div>
+      <div style="position:relative;height:120px;margin-top:8px"><canvas id="ageChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Loyalty vs Non-Loyalty Revenue</div>
+      <div class="donut-wrap" style="height:155px"><canvas id="loyaltyDonut" width="155" height="155"></canvas><div class="donut-center"><div class="big">58.6%</div><div class="sm">Loyalty</div></div></div>
+      <div style="display:flex;gap:12px;justify-content:center;margin-top:8px;flex-wrap:wrap">
+        <div class="legend-item"><div class="legend-dot" style="background:#c0392b"></div>Loyalty ₹471.8K</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#333"></div>Non-Loyalty ₹332.4K</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Revenue by Gender</div>
+      <div id="genderBars"></div>
+      <div style="position:relative;height:130px;margin-top:8px"><canvas id="genderChart"></canvas></div>
+    </div>
+  </div>
+  <div class="grid2 g-2">
+    <div class="card">
+      <div class="card-title">Top 10 Customers by Revenue</div>
+      <table>
+        <thead><tr><th>Customer ID</th><th>Revenue</th><th style="text-align:right">Status</th></tr></thead>
+        <tbody>
+          <tr><td>C03304</td><td>₹11,191</td><td style="text-align:right"><span class="pill pill-green">Loyalty</span></td></tr>
+          <tr><td>C03171</td><td>₹10,625</td><td style="text-align:right"><span class="pill pill-green">Loyalty</span></td></tr>
+          <tr><td>C01784</td><td>₹10,005</td><td style="text-align:right"><span class="pill pill-green">Loyalty</span></td></tr>
+          <tr><td>C03153</td><td>₹9,244</td><td style="text-align:right"><span class="pill pill-green">Loyalty</span></td></tr>
+          <tr><td>C03730</td><td>₹8,046</td><td style="text-align:right"><span class="pill pill-yellow">Non-Loyalty</span></td></tr>
+          <tr><td>C04011</td><td>₹8,046</td><td style="text-align:right"><span class="pill pill-green">Loyalty</span></td></tr>
+          <tr><td>C02674</td><td>₹7,870</td><td style="text-align:right"><span class="pill pill-green">Loyalty</span></td></tr>
+          <tr><td>C03532</td><td>₹7,747</td><td style="text-align:right"><span class="pill pill-yellow">Non-Loyalty</span></td></tr>
+          <tr><td>C00931</td><td>₹7,675</td><td style="text-align:right"><span class="pill pill-green">Loyalty</span></td></tr>
+          <tr><td>C01479</td><td>₹7,656</td><td style="text-align:right"><span class="pill pill-green">Loyalty</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">Purchase Frequency Distribution</div>
+      <div style="position:relative;height:185px"><canvas id="freqChart"></canvas></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+        <div style="background:#222;border-radius:6px;padding:8px;text-align:center"><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">One-time Buyers</div><div style="font-size:16px;font-weight:600;color:#e74c3c">1,837</div></div>
+        <div style="background:#222;border-radius:6px;padding:8px;text-align:center"><div style="font-size:8px;color:#555;text-transform:uppercase;margin-bottom:2px">Repeat Buyers</div><div style="font-size:16px;font-weight:600;color:#27ae60">1,329</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- .main -->
+</div><!-- .dash -->
+
+<script>
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+const months=['Jan 25','Feb 25','Mar 25','Apr 25','May 25','Jun 25','Jul 25','Aug 25','Sep 25','Oct 25','Nov 25','Dec 25','Jan 26','Feb 26','Mar 26','Apr 26','May 26'];
+const rev=[254610,231694,247214,229771,224110,236886,249557,251408,229509,243012,275335,247254,229497,213997,223643,267993,240475];
+const prof=[48509,44188,49073,46182,42223,47039,47578,48539,44287,46317,52335,48486,42067,40267,42910,54293,46562];
+const cats=['Grocery','Beverages','Snacks','Personal Care','Dairy','Household','Frozen Foods'];
+const catV=[574772,554521,773401,566414,674472,449807,502580];
+const catMargins=[19.7,19.0,19.7,19.5,19.8,19.5,17.5];
+
+function mkBars(elId,labels,vals,maxV,unit='₹',suffix='K',div=1000,colors=null){
+  const el=document.getElementById(elId);if(!el)return;
+  labels.forEach((l,i)=>{
+    const w=(vals[i]/maxV*100).toFixed(1);
+    const vFmt=unit+(vals[i]/div).toFixed(1)+suffix;
+    const col=colors?colors[i]:'#c0392b';
+    el.innerHTML+=`<div class="bar-h"><div class="bl"><span style="color:#ccc">${l}</span><span style="color:#555">${vFmt}</span></div><div class="bt"><div class="bf" style="width:${w}%;background:${col}"></div></div></div>`;
+  });
+}
+
+const chartDefaults={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#444',font:{size:8},maxRotation:0},grid:{color:'#1e1e1e'},autoSkip:true,maxTicksLimit:7},y:{ticks:{color:'#444',font:{size:8}},grid:{color:'#1e1e1e'}}}};
+
+// --- EXEC ---
+mkBars('catBarsExec',cats,catV,773401,'₹','M',1e6);
+const topC=['#1565c0','#2e7d32','#827717','#4a148c','#b71c1c','#00695c','#e65100','#283593','#558b2f','#4e342e'];
+const topP=['Amul Milk 1L','Tata Salt 1kg','Lays 52g','Aashirvaad 5kg','Coca Cola 750ml','Nivea Lotion','Maggi 2min','Dettol 125g','Bru Coffee','Surf Excel'];
+const topV=['₹1.25M','₹0.98M','₹0.85M','₹0.78M','₹0.72M','₹0.65M','₹0.62M','₹0.58M','₹0.58M','₹0.53M'];
+const tp=document.getElementById('topProdsExec');
+topP.forEach((p,i)=>{tp.innerHTML+=`<div class="prod-chip" style="background:${topC[i]}"><div class="prod-name">${p}</div><div class="prod-val">${topV[i]}</div></div>`;});
+const profP=['DailyPure Cheese','QuickBite Shampoo','CareMore Yogurt','CareMore Tissue','HomePlus Toothpaste','UrbanMart Namkeen','Frozen Corn','PrimeChoice Ghee','ValueKart Coffee','PrimeChoice Pasta'];
+const profV=[7151,7081,6831,6722,6551,6469,5967,5816,5501,5450];
+const pr=document.getElementById('profitRowsExec');
+profP.forEach((p,i)=>{const w=(profV[i]/7151*100).toFixed(0);pr.innerHTML+=`<div class="tr"><span style="color:#444;min-width:14px">${i+1}</span><span style="flex:1;color:#bbb;padding:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:115px">${p}</span><div class="pbw" style="width:80px"><div class="pbar" style="width:${w}%"></div></div><span style="color:#555;min-width:44px;text-align:right">₹${(profV[i]/1000).toFixed(2)}K</span></div>`;});
+
+new Chart(document.getElementById('trendChart'),{type:'bar',data:{labels:months,datasets:[{label:'Revenue',data:rev,backgroundColor:'#c0392b',borderRadius:2,order:2},{label:'Profit',data:prof,type:'line',borderColor:'#444',backgroundColor:'transparent',pointRadius:2,pointBackgroundColor:'#555',borderWidth:1.5,order:1}]},options:{...chartDefaults,scales:{x:{...chartDefaults.scales.x},y:{...chartDefaults.scales.y,ticks:{color:'#444',font:{size:8},callback:v=>'₹'+(v/1000).toFixed(0)+'K'}}}}});
+const targets=rev.map(v=>Math.round(v*0.928));
+new Chart(document.getElementById('targetChart'),{type:'bar',data:{labels:months,datasets:[{label:'Revenue',data:rev,backgroundColor:'#c0392b',borderRadius:2,order:2},{label:'Target',data:targets,type:'line',borderColor:'#555',backgroundColor:'transparent',borderDash:[4,3],pointRadius:2,pointBackgroundColor:'#555',borderWidth:1.5,order:1}]},options:{...chartDefaults,scales:{x:{...chartDefaults.scales.x},y:{...chartDefaults.scales.y,ticks:{color:'#444',font:{size:8},callback:v=>'₹'+(v/1000).toFixed(0)+'K'}}}}});
+
+// --- STORE ---
+const stores=['Whitefield','Indiranagar','Jayanagar','Elec. City','T Nagar','Anna Nagar','Banjara Hills','Gachibowli','Mysuru Cen.','RS Puram'];
+const storeRev=[510894,463564,460102,453671,445372,389358,384081,372260,313478,303186];
+const storeM=[19.3,19.2,19.1,19.0,19.7,19.6,19.9,19.4,17.8,19.9];
+mkBars('storeBars',stores,storeRev,510894,'₹','K',1000);
+const smb=document.getElementById('storeMarginBars');
+storeM.forEach((v,i)=>{const w=(v/20*100).toFixed(1);const col=v<18.5?'#e74c3c':v>19.5?'#27ae60':'#2980b9';smb.innerHTML+=`<div class="bar-h"><div class="bl"><span style="color:#ccc">${stores[i]}</span><span style="color:${col}">${v}%</span></div><div class="bt"><div class="bf" style="width:${w}%;background:${col}"></div></div></div>`;});
+new Chart(document.getElementById('cityChart'),{type:'bar',data:{labels:['Bengaluru','Chennai','Hyderabad','Mysuru','Coimbatore'],datasets:[{label:'Revenue',data:[1888231,834730,756341,313478,303186],backgroundColor:'#c0392b',borderRadius:3},{label:'Profit',data:[362144,164116,148480,55730,60384],backgroundColor:'#7f1313',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#555',font:{size:9}}}},scales:{x:{ticks:{color:'#555',font:{size:9}},grid:{color:'#1e1e1e'}},y:{ticks:{color:'#555',font:{size:9},callback:v=>'₹'+(v/1000).toFixed(0)+'K'},grid:{color:'#1e1e1e'}}}}});
+
+// --- INVENTORY ---
+const invCats=['Snacks','Grocery','Beverages','Dairy','Personal Care','Household','Frozen Foods'];
+const invV=[17532092,17063841,16206257,14783080,9962037,8286131,7961293];
+mkBars('invCatBars',invCats,invV,17532092,'₹','M',1e6);
+new Chart(document.getElementById('invDonut'),{type:'doughnut',data:{labels:['Healthy','Stock-Out','Overstock'],datasets:[{data:[2798,530,1672],backgroundColor:['#27ae60','#e74c3c','#f39c12'],borderWidth:0,hoverOffset:4}]},options:{responsive:false,cutout:'68%',plugins:{legend:{display:false}}}});
+
+// --- PRODUCT ---
+new Chart(document.getElementById('catBar2'),{type:'bar',data:{labels:cats,datasets:[{label:'Revenue',data:catV,backgroundColor:['#c0392b','#922b21','#7b241c','#641e16','#e74c3c','#cb4335','#a93226'],borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#555',font:{size:9},maxRotation:20},grid:{color:'#1e1e1e'}},y:{ticks:{color:'#555',font:{size:9},callback:v=>'₹'+(v/1000).toFixed(0)+'K'},grid:{color:'#1e1e1e'}}}}});
+const cmb=document.getElementById('catMarginBars');
+cats.forEach((c,i)=>{const w=(catMargins[i]/20*100).toFixed(1);const col=catMargins[i]<18?'#e74c3c':catMargins[i]>19.5?'#27ae60':'#2980b9';cmb.innerHTML+=`<div class="bar-h"><div class="bl"><span style="color:#ccc">${c}</span><span style="color:${col}">${catMargins[i]}%</span></div><div class="bt"><div class="bf" style="width:${w}%;background:${col}"></div></div></div>`;});
+new Chart(document.getElementById('catMargLine'),{type:'line',data:{labels:cats,datasets:[{label:'Margin %',data:catMargins,borderColor:'#27ae60',backgroundColor:'rgba(39,174,96,0.08)',pointBackgroundColor:'#27ae60',pointRadius:4,borderWidth:2,fill:true,tension:0.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#444',font:{size:8},maxRotation:20},grid:{color:'#1e1e1e'}},y:{ticks:{color:'#444',font:{size:8},callback:v=>v+'%'},grid:{color:'#1e1e1e'},min:15,max:22}}}});
+new Chart(document.getElementById('catCombo'),{type:'bar',data:{labels:cats,datasets:[{label:'Revenue ₹K',data:catV.map(v=>v/1000),backgroundColor:'#c0392b',borderRadius:3,yAxisID:'y'},{label:'Margin %',data:catMargins,type:'line',borderColor:'#27ae60',backgroundColor:'transparent',pointRadius:3,pointBackgroundColor:'#27ae60',borderWidth:1.5,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#555',font:{size:8}}}},scales:{x:{ticks:{color:'#444',font:{size:8},maxRotation:20},grid:{color:'#1e1e1e'}},y:{ticks:{color:'#444',font:{size:8},callback:v=>v+'K'},grid:{color:'#1e1e1e'}},y1:{position:'right',ticks:{color:'#27ae60',font:{size:8},callback:v=>v+'%'},grid:{display:false},min:0,max:30}}}});
+
+// --- CUSTOMER ---
+const ageGroups=['18-25','26-35','36-45','46-60','60+'];
+const ageRev=[131736,268445,216243,142424,45268];
+mkBars('ageGroupBars',ageGroups,ageRev,268445,'₹','K',1000);
+new Chart(document.getElementById('ageChart'),{type:'doughnut',data:{labels:ageGroups,datasets:[{data:ageRev,backgroundColor:['#c0392b','#e74c3c','#922b21','#7b241c','#512e2e'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'right',labels:{color:'#666',font:{size:9},boxWidth:8}}}}});
+new Chart(document.getElementById('loyaltyDonut'),{type:'doughnut',data:{labels:['Loyalty','Non-Loyalty'],datasets:[{data:[471760,332356],backgroundColor:['#c0392b','#333'],borderWidth:0}]},options:{responsive:false,cutout:'68%',plugins:{legend:{display:false}}}});
+const genders=['Female','Male','Other'];
+const genRev=[423010,365900,15206];
+mkBars('genderBars',genders,genRev,423010,'₹','K',1000);
+new Chart(document.getElementById('genderChart'),{type:'pie',data:{labels:genders,datasets:[{data:genRev,backgroundColor:['#c0392b','#2980b9','#27ae60'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#666',font:{size:9},boxWidth:8}}}}});
+new Chart(document.getElementById('freqChart'),{type:'bar',data:{labels:['1 order','2 orders','3 orders','4 orders','5+ orders'],datasets:[{label:'Customers',data:[1837,820,340,130,39],backgroundColor:['#7b241c','#922b21','#c0392b','#e74c3c','#cb4335'],borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#555',font:{size:9}},grid:{color:'#1e1e1e'}},y:{ticks:{color:'#555',font:{size:9}},grid:{color:'#1e1e1e'}}}}});
+</script>
+</body>
+</html>
