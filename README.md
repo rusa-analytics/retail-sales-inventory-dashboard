@@ -70,13 +70,21 @@ Understand:
 * Loyalty Performance
 * Customer Trends
 
-Technologies Used
+Technologies & Deployment Options
 
-* HTML5
-* CSS3
-* JavaScript
-* Chart.js
-* GitHub Pages
+Current Demonstration Build:
+- HTML5
+- CSS3
+- JavaScript
+- Chart.js
+- GitHub Pages
+
+Production Deployment Options:
+- Microsoft Power BI
+- Tableau
+- Looker Studio
+- Web-Based Analytics Applications
+- Custom Executive Dashboards
 
 Business Value
 
