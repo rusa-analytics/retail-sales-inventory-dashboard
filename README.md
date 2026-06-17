@@ -93,23 +93,23 @@ Screenshots
 
 Executive Overview
 
-(Add Screenshot)
+<img width="1400" height="900" alt="1_Executive_Overview" src="https://github.com/user-attachments/assets/d1f87266-1f31-4fe5-803e-7d15e1e0f968" />
 
 Store Performance
 
-(Add Screenshot)
+<img width="1400" height="900" alt="2_Store_Performance" src="https://github.com/user-attachments/assets/d686d843-c283-4a5d-a8fb-5bd9c6a40fbb" />
 
 Inventory Intelligence
 
-(Add Screenshot)
+<img width="1400" height="900" alt="3_Inventory_Intelligence" src="https://github.com/user-attachments/assets/539a50d2-b5d1-4af1-9b64-273d39799fa1" />
 
 Product Analytics
 
-(Add Screenshot)
+<img width="1400" height="900" alt="4_Product_Analytics" src="https://github.com/user-attachments/assets/ba663b51-d995-4268-95d9-8706f68a1d75" />
 
 Customer Insights
 
-(Add Screenshot)
+<img width="1400" height="900" alt="5_Customer_Insights" src="https://github.com/user-attachments/assets/c3cb9114-ed8a-4a3c-8925-fc27aa54489f" />
 
 About RUSA Analytics
 
